@@ -5,14 +5,10 @@ library(tidyverse)
 library(scales)
 library(ggthemes)
 library(kableExtra)
-library(gganimate)
 library(lubridate)
 library(geomtextpath)
 library(ggtext)
-library(here)
-library(readxl)
 library(janitor)
-library(DT)
 library(bslib)
 library(thematic)
 library(shinycssloaders)
@@ -26,15 +22,24 @@ shinyOptions(plot.autocolor = TRUE)
 
 d <- read_feather("data/undirvisitolur.feather")
 
+
+
+d_comparison <- d |> 
+  filter(flokkur_3 == "Vísitala neysluverðs") |> 
+  mutate(yearly_ahrif = exp(roll_sum(log(1 + ahrif), n = 12, align = "right", fill = NA)) - 1,
+         type = "Vísitala neysluverðs")
+d <- d |> 
+  filter(flokkur_3 != "Vísitala neysluverðs")
+
+vaegi_correction <- d |> 
+  group_by(date) |> 
+  summarise(vaegi = sum(vaegi)) |> 
+  ungroup() |> 
+  pull(vaegi)
+
 flokkur_1 <- unique(d$flokkur_1)
 flokkur_2 <- unique(d$flokkur_2)
 flokkur_3 <- unique(d$flokkur_3)
-
-d_comparison <- d |> 
-  group_by(date) |> 
-  summarise(ahrif = sum(ahrif)) |> 
-  mutate(yearly_ahrif = roll_sum(ahrif, n = 12, align = "right", fill = NA),
-         type = "Vísitala neysluverðs")
 
 ##### Sidebar Info and Plot Captions #####
 # This is pasted into the sidebar on each page
@@ -42,7 +47,7 @@ sidebar_info <- paste0(
   br(" "),
   h5("Höfundur:"),
   p("Brynjólfur Gauti Guðrúnar Jónsson"),
-  HTML("<a href='https://github.com/bgautijonsson/skattagogn'> Kóði og gögn </a>")
+  HTML("<a href='https://github.com/bgautijonsson/verdbolga' target='_top'> Kóði og gögn </a>")
 )
 # This is the caption for plots
 global_caption <- ""

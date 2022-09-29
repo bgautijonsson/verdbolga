@@ -32,7 +32,7 @@ undirvisitolur_ui <- function(id) {
              
              
              mainPanel(
-               plotlyOutput(NS(id, "compare_plot"), height = "600px")
+               plotlyOutput(NS(id, "compare_plot"), height = 600, width = "100%")
              )
            )
            

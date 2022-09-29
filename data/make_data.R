@@ -45,24 +45,35 @@ d <- pxweb_get(
   group_by(date, lidur, flokkur_1, flokkur_2) |> 
   fill(flokkur_3, .direction = "down") |> 
   ungroup() |> 
+  # mutate(
+  #   flokkur_1 = ifelse(is.na(flokkur_1), "Heild", flokkur_1),
+  #   flokkur_2 = ifelse(is.na(flokkur_2), flokkur_1, flokkur_2),
+  #   flokkur_3 = ifelse(is.na(flokkur_3), flokkur_2, flokkur_3)
+  #   ) |> 
+  group_by(flokkur_1) |> 
   mutate(
-    flokkur_1 = ifelse(is.na(flokkur_1), "Heild", flokkur_1),
-    flokkur_2 = ifelse(is.na(flokkur_2), flokkur_1, flokkur_2),
-    flokkur_3 = ifelse(is.na(flokkur_3), flokkur_2, flokkur_3)
-    ) |> 
+    flokkur_2 = case_when(
+      all(is.na(flokkur_2)) ~ flokkur_1,
+      is.na(flokkur_2) ~ NA_character_,
+      TRUE ~ flokkur_2
+    )
+  ) |> 
+  group_by(flokkur_2) |> 
+  mutate(
+    flokkur_3 = case_when(
+      all(is.na(flokkur_3)) ~ flokkur_2,
+      is.na(flokkur_3) ~ NA_character_,
+      TRUE ~ flokkur_3
+    )
+  ) |> 
+  ungroup() |> 
+  mutate(flokkur_3 = ifelse(undirvisitala == "Vísitala neysluverðs", undirvisitala, flokkur_3)) |> 
+  drop_na(flokkur_3) |> 
   select(date, starts_with("flokkur"), name = lidur, value) |> 
   pivot_wider(names_from = name, values_from = value) |> 
   janitor::clean_names() |> 
-  rename(vaegi = "vaegi_percent", "breyting" = "manadarbreyting_percent", "ahrif" = "ahrif_a_visitolu_percent") |> 
-  filter(flokkur_1 != "Heild") |> 
-  group_by(flokkur_1) |> 
-  filter(
-    (flokkur_2 != flokkur_1) | all(flokkur_2 == flokkur_1)
-  ) |> 
-  group_by(flokkur_2) |> 
-  filter(
-    (flokkur_3 != flokkur_2) | all(flokkur_3 == flokkur_2)
-  )
+  rename(vaegi = "vaegi_percent", "breyting" = "manadarbreyting_percent", "ahrif" = "ahrif_a_visitolu_percent")
+
 
 d |> 
   write_feather("data/undirvisitolur.feather")

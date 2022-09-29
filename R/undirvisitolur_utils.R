@@ -1,21 +1,24 @@
 make_visitala_data <- function(input) {
   data <- d |> 
+    group_by(date) |> 
+    mutate(total_vaegi = sum(vaegi)) |> 
+    ungroup() |> 
     filter(flokkur_3 %in% input$flokkur_3) |> 
     group_by(date) |> 
-    mutate(vaegi = vaegi / sum(vaegi),
+    mutate(vaegi = total_vaegi * vaegi / sum(vaegi),
            ahrif = vaegi * breyting) |> 
     summarise(
-      ahrif = sum(ahrif),
+      ahrif = exp(sum(log(1 + ahrif))) - 1,
       .groups = "drop"
     ) |> 
     mutate(
-      yearly_ahrif = roll_sum(ahrif, n = 12, align = "right", fill = NA),
+      yearly_ahrif = exp(roll_sum(log(1 + ahrif), n = 12, align = "right", fill = NA)) - 1,
       type = "Þín vísitala"
     ) |> 
     bind_rows(
       d_comparison
     ) |> 
-    drop_na() |> 
+    drop_na(yearly_ahrif) |> 
     mutate(
       text = str_c(
         "<b style='text-align:center;'>", type, "</b>", "\n",
@@ -60,7 +63,7 @@ make_visitala_plotly <- function(my_plot, input) {
     layout(hoverlabel = list(align = "left"),
            margin = list(
              t = 60,
-             r = 0,
+             r = 15,
              b = 120,
              l = 0
            ),
